@@ -1,11 +1,14 @@
 /*
-Interface RoboCOP - GMRS Radio x ZELLO - by 2RUGE0007 Renato Druziani
+
+Interface RoboCOP - GMRS Radio x ZELLO - by 2RUGE0007 Renato Druziani 2023
 
 This is the design of a controller for a GMRS radio gateway for the zello app.
-The idea is to make it simple to assemble without the need to open the radio or smartphone to collect signals, I use LDRs on the cell phone screen and LED tx/rx on the HT.
+The idea is to make it simple to assemble without the need to open the radio or smartphone to collect signals,
+I use LDRs on the cell phone screen and LED tx/rx on the HT.
 Automated configuration steps and created constant self-tuning, reducing maintenance.
 
 */
+
 // Incluindo bibliotecas utilizadas-----------------------------------------------------------------------------------------------------
  #include <Arduino.h>
  #include <WiFi.h>
@@ -107,6 +110,7 @@ Automated configuration steps and created constant self-tuning, reducing mainten
  unsigned long CronoPPToff      = millis();
  unsigned long AtualizaDisplay  = millis();
  unsigned long TimerPisca       = millis();
+ unsigned long TimerLedHT       = millis();
  unsigned long TimerDisplay     = millis();
  unsigned long TimerAutoAjuste  = millis();
  String        statusRADIO      = "XX";
@@ -701,9 +705,10 @@ void setup()
   {  
     display.clearDisplay();
     display.setCursor (0, 0);
-    display.println(F("WIFI fora de alcance"));
+    display.println(F(" WIFI fora de alcance"));
+    display.println(F("---------------------"));
     display.println(F(" Para adicionar uma"));
-    display.println(F("rede aperte  o botao"));
+    display.println(F(" rede aperte o BOOT"));
     display.display();
     Crono = millis();
     while ((millis() - Crono) < 5000) 
@@ -728,6 +733,7 @@ void setup()
       display.clearDisplay();
       display.setCursor (0, 0); 
       display.println(F(" ENTRE NA REDE WIFI"));
+      display.println(F("---------------------"));
       display.println(F(" LINK-ROBOCOP-setup"));
       display.println(F("   Senha 12345678"));    
       display.display();
@@ -888,7 +894,7 @@ void loop()
       BOOTacionado = false;
     }    
     // LINK em recepção -------------------------------------------------------------------------------------------------------------------
-    if (RADIO)
+    if ((RADIO) & ((millis() - TimerLedHT) > 2000))
     {
       PTTzelloON();
       String BEEP = "erro";
@@ -899,8 +905,8 @@ void loop()
         if (statusZELLO == "TX") BEEP = "local";
         if ((millis() - Crono) > CincoMinutos) RADIO = false;
       }
-      PTTzelloOFF();  
-      PTTradioON();  
+      PTTzelloOFF();
+      PTTradioON();
       Crono = millis();
       while ((millis() - Crono) < 50) Display();
       if (BEEP == "local") LOCUTORA.play (RogerBEEPlocal);
@@ -1029,16 +1035,16 @@ long ESTADOzello() // TelaAPAGOU TA - Offline OF - RX - TX - Esperando ON - Tela
       EEPROM.commit();  
       TimerAutoAjuste = millis();
    }
-   if ((LeituraLDRzello > L1) & (LeituraLDRzello < (L1 + ((DifMedia/100) * 110)))) statusZELLO = "ON";
-   if ((LeituraLDRzello < L1) & (LeituraLDRzello > L2))                            statusZELLO = S1; // TX ou RX dependendo do caso
-   if ((LeituraLDRzello < L2) & (LeituraLDRzello > (L2 - ((DifMedia/100) * 110)))) statusZELLO = S2; // TX ou RX dependendo do caso
-   if ((LeituraLDRzello < (L2 - ((DifMedia/100) * 120))) & (LeituraLDRzello > 2))  statusZELLO = "OF";
-   if  (LeituraLDRzello < 3)                                                       statusZELLO = "TA";
-   if  (LeituraLDRzello > (L1 + ((DifMedia/100) * 110)))                           statusZELLO = "TI";
+   if ((LeituraLDRzello > L1) & (LeituraLDRzello < (L1 + (DifMedia * 1.1)))) statusZELLO = "ON";
+   if ((LeituraLDRzello < L1) & (LeituraLDRzello > L2))                      statusZELLO = S1; // TX ou RX dependendo do caso
+   if ((LeituraLDRzello < L2) & (LeituraLDRzello > (L2 - (DifMedia * 1.1)))) statusZELLO = S2; // TX ou RX dependendo do caso
+   if ((LeituraLDRzello < (L2 - (DifMedia * 1.2))) & (LeituraLDRzello > 9))  statusZELLO = "OF";
+   if  (LeituraLDRzello < 10)                                                statusZELLO = "TA";
+   if  (LeituraLDRzello > (L1 + (DifMedia * 1.1)))                           statusZELLO = "TI";
    statusLINK = statusZELLO;
    if  (statusZELLO == "RX") { statusRADIO = "TX"; statusLINK  = "TX"; }
-   if  (statusZELLO == "ON") statusRADIO = "OF";
-   if  (statusZELLO == "TX") statusLINK  = "RX";
+   if  (statusZELLO == "ON")   statusRADIO = "OF";
+   if  (statusZELLO == "TX")   statusLINK  = "RX";
   }     
 }
 
@@ -1125,6 +1131,7 @@ long PTTradioOFF()
 {
   digitalWrite (LED,      LOW);
   digitalWrite (PTTradio, LOW);
+  TimerLedHT = millis();
 }
 
 // FUNÇÃO AJUSTE HORA CERTA  --------------------------------------------------------------------------------------------------------------
