@@ -10,7 +10,7 @@ Automated configuration steps and created constant self-tuning, reducing mainten
 */
  
 // VERSÃO do Software --------------------------------------------------------------------------------------------------------------------
- #define Versao          "5.0.b"
+ #define Versao          "5.b.0"
 
 // Incluindo bibliotecas utilizadas-----------------------------------------------------------------------------------------------------
  #include <Arduino.h>
