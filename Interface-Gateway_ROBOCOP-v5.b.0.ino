@@ -153,6 +153,8 @@ void setup()
   Serial.begin(115200);
   EEPROM.begin(EEPROM_SIZE);
   ComunicacaoSerial.begin(9600);
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  LOCUTORA.begin(ComunicacaoSerial);
   
  // Gerenciador de WIFI -------------------------------------------------------------------------------------------------------------------
   wifiManager.setDebugOutput(false);              // True = mensagens de Debug do wifi vão aparecer no monitor serial
@@ -205,13 +207,15 @@ void setup()
   delay(INICIO * 4); 
 
  // INICIANDO MP3 -------------------------------------------------------------------------------------------------------------------------
+  LOCUTORA.begin(ComunicacaoSerial);
+  delay(500);
   digitalWrite (LED, 1);
   display.println(F("INICIANDO VOZ..."));
   LocutoraOK = LOCUTORA.begin(ComunicacaoSerial);
   display.display();
-  delay(INICIO * 10);
+  delay(500);
   digitalWrite (LED, 0);
-  if (!LocutoraOK)      //Use softwareSerial to communicate with mp3.
+  if (!LOCUTORA.begin(ComunicacaoSerial))      //Use softwareSerial to communicate with mp3.
   {
     display.clearDisplay();
     display.setCursor (0, 0);
@@ -252,7 +256,7 @@ void setup()
     display.clearDisplay();
     delay(3000);
   }
-  if (LocutoraOK)
+  else
   {
     LOCUTORA.outputDevice(DFPLAYER_DEVICE_SD);   // configurando a media usada = SDcard
     LOCUTORA.EQ(DFPLAYER_EQ_BASS);               // configurando equalizador = BASS
