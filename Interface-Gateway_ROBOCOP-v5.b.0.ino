@@ -781,7 +781,7 @@ long Display()
     Crono = millis();
     while (!digitalRead(BotaoBOOT))
     {
-      if ((millis() - Crono) > 5000) ESP.restart(); 
+      if ((millis() - Crono) > 5000) MenuSETUP1(); 
     }
     if (millis() - TimerDisplay < TempoDisplay) TipoMOSTRADOR++;
     TimerDisplay = millis();
