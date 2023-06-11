@@ -10,7 +10,7 @@ Automated configuration steps and created constant self-tuning, reducing mainten
 */
  
 // VERSÃO do Software ------------------------------------------------------------------------------------------------------------------
- #define Versao          "5.b.0"
+ #define Versao          "5.0.1"
 
 // Incluindo bibliotecas utilizadas-----------------------------------------------------------------------------------------------------
  #include <Arduino.h>
@@ -43,6 +43,9 @@ Automated configuration steps and created constant self-tuning, reducing mainten
  #define SinalLDRzello    35
 // Definições dos endereços dos valores salvos na EEPROM-----------------------------------------------------------------------------------
  #define EEPROM_SIZE      64
+ #define eHoraCerta       0
+ #define eMensagens       1
+ #define eRogerBEEPs      2
  #define evolumeVOZ       10
  #define evon             20
  #define evtx             30
@@ -94,6 +97,9 @@ Automated configuration steps and created constant self-tuning, reducing mainten
  bool          WIFIok           = false;
  bool          LocutoraOK       = false;
  bool          DisplayAceso     = true;
+ bool          RogerBEEPs       = false;
+ bool          HoraCerta        = false;
+ bool          Mensagens        = false;
  bool          MensagemTA       = true;
  bool          MensagemTI       = true;
  bool          MensagemOFF      = true;
@@ -138,7 +144,9 @@ Automated configuration steps and created constant self-tuning, reducing mainten
  long          Display();
  long          Pisca();
  long          AjustarRELOGIO();
- long          MenuSETUP1();
+ long          MenuSETUPinicio();
+ long          MenuSETUPbasico();
+ long          MenuSETUPmensagens();
  long          WiFiconfig();
  long          ADDPTTZello();
  long          PosicionarLDRZello(); 
@@ -269,6 +277,9 @@ void setup()
     Volume = EEPROM.readByte(evolumeVOZ);        // Ajustando o Volume armazenado
     LOCUTORA.setTimeOut(500);                    // ajustando o timeout da comunicação serial 500ms
     LOCUTORA.volume(Volume);                     // Ajustando o volume (0~30).
+    HoraCerta  = EEPROM.readBool(eHoraCerta);
+    Mensagens  = EEPROM.readBool(eMensagens);
+    RogerBEEPs = EEPROM.readBool(eRogerBEEPs);
     display.println(F("VOZ HABILITADA!"));
     display.println();
     display.display();
@@ -307,7 +318,7 @@ void setup()
   }  
   display.display();
   delay(INICIO); 
-  if (INICIO == 500) MenuSETUP1(); 
+  if (INICIO == 500) MenuSETUPinicio(); 
   delay(INICIO * 4);
   
  // CARREGANDO DADOS DA EEPROM ------------------------------------------------------------------------------------------------------------
@@ -356,18 +367,24 @@ void loop()
   {
     if ((!MensagemTA) & (LocutoraOK))
     {
-      PTTradioON();
-      Crono = millis();
-      while ((millis() - Crono) < 350) Display();
-      LOCUTORA.play (TelaAPAGOU);
-      Crono = millis();
-      while ((millis() - Crono) < 1000) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      LOCUTORA.play (RogerBEEPerro);
-      Crono = millis();
-      while ((millis() - Crono) < 250) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      PTTradioOFF();
+      if (Mensagens)
+      {
+        PTTradioON();
+        Crono = millis();
+        while ((millis() - Crono) < 350) Display();
+        LOCUTORA.play (TelaAPAGOU);
+        Crono = millis();
+        while ((millis() - Crono) < 1000) Display();
+        while (!digitalRead(TocandoMP3)) Display();
+        if (RogerBEEPs)
+        {
+          LOCUTORA.play (RogerBEEPerro);
+          Crono = millis();
+          while ((millis() - Crono) < 250) Display();
+          while (!digitalRead(TocandoMP3)) Display();
+        }
+        PTTradioOFF();
+      }
       MensagemTA  = true;
       MensagemOFF = false;
       MensagemON  = false;
@@ -385,18 +402,24 @@ void loop()
   {
     if ((!MensagemOFF) & (LocutoraOK))
     {
-      PTTradioON();
-      Crono = millis();
-      while ((millis() - Crono) < 350) Display();
-      LOCUTORA.play (LinkOFFLINE);
-      Crono = millis();
-      while ((millis() - Crono) < 1000) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      LOCUTORA.play (RogerBEEPerro);
-      Crono = millis();
-      while ((millis() - Crono) < 250) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      PTTradioOFF();
+      if (Mensagens)
+      {
+        PTTradioON();
+        Crono = millis();
+        while ((millis() - Crono) < 350) Display();
+        LOCUTORA.play (LinkOFFLINE);
+        Crono = millis();
+        while ((millis() - Crono) < 1000) Display();
+        while (!digitalRead(TocandoMP3)) Display();
+        if (RogerBEEPs)
+        {
+          LOCUTORA.play (RogerBEEPerro);
+          Crono = millis();
+          while ((millis() - Crono) < 250) Display();
+          while (!digitalRead(TocandoMP3)) Display();
+        }
+        PTTradioOFF();
+      }
       MensagemTA  = false;
       MensagemOFF = true;
       MensagemON  = false;
@@ -414,14 +437,17 @@ void loop()
   {  
     if ((!MensagemON) & (LocutoraOK))
     {
-      PTTradioON();
-      Crono = millis();
-      while ((millis() - Crono) < 200) Display();
-      LOCUTORA.play (LinkONLINE);
-      Crono = millis();
-      while ( digitalRead(TocandoMP3)) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      PTTradioOFF();
+      if (Mensagens)
+      {
+        PTTradioON();
+        Crono = millis();
+        while ((millis() - Crono) < 200) Display();
+        LOCUTORA.play (LinkONLINE);
+        Crono = millis();
+        while ( digitalRead(TocandoMP3)) Display();
+        while (!digitalRead(TocandoMP3)) Display();
+        PTTradioOFF();
+      }
       MensagemTA  = false; 
       MensagemOFF = false;
       MensagemON  = true;
@@ -431,35 +457,47 @@ void loop()
     // Aplicando HORA E MEIA ---------------------------------------------------------------------------------------------------------------
     if ((WIFIok) & (M == 30) & (!FalouAsHORAS) & (HC=="+") & (LocutoraOK))
     {
-      PTTradioON();
-      Crono = millis();
-      while ((millis() - Crono) < 400) Display();
-      LOCUTORA.play (H+1);
-      while ( digitalRead(TocandoMP3)) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      LOCUTORA.play (RogerBEEPlocal);
-      Crono = millis();
-      while ( digitalRead(TocandoMP3)) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      PTTradioOFF();
+      if (HoraCerta)
+      {
+        PTTradioON();
+        Crono = millis();
+        while ((millis() - Crono) < 400) Display();
+        LOCUTORA.play (H+1);
+        while ( digitalRead(TocandoMP3)) Display();
+        while (!digitalRead(TocandoMP3)) Display();
+        if (RogerBEEPs)
+        {
+          LOCUTORA.play (RogerBEEPlocal);
+          Crono = millis();
+          while ( digitalRead(TocandoMP3)) Display();
+          while (!digitalRead(TocandoMP3)) Display();
+        }
+        PTTradioOFF();
+      }
       FalouAsHORAS = true;
     }   
     
     // Aplicando MENSAGENS REGULARES quando ocioso ----------------------------------------------------------------------------------------
-    if ((((M == 15) | (M == 45)) & (S == 0) & (Narquivos >= PrimeiraVinheta)) | (BOOTacionado) & (LocutoraOK))
+    if ((((M == 15) | (M == 45)) & (S == 0) & (Narquivos >= PrimeiraVinheta) & (Mensagens)) | (BOOTacionado) & (LocutoraOK))
     {
-      PTTradioON();
-      Crono = millis();
-      while ((millis() - Crono) < 200) Display();
-      LOCUTORA.play (Vinheta);
-      Vinheta++;
-      if (Vinheta > (Narquivos)) Vinheta = PrimeiraVinheta;
-      while ( digitalRead(TocandoMP3)) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      LOCUTORA.play (RogerBEEPlocal);
-      while ( digitalRead(TocandoMP3)) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      PTTradioOFF();
+      if (Mensagens)
+      {
+        PTTradioON();
+        Crono = millis();
+        while ((millis() - Crono) < 200) Display();
+        LOCUTORA.play (Vinheta);
+        Vinheta++;
+        if (Vinheta > (Narquivos)) Vinheta = PrimeiraVinheta;
+        while ( digitalRead(TocandoMP3)) Display();
+        while (!digitalRead(TocandoMP3)) Display();
+        if (RogerBEEPs)
+        {
+          LOCUTORA.play (RogerBEEPlocal);
+          while ( digitalRead(TocandoMP3)) Display();
+          while (!digitalRead(TocandoMP3)) Display();
+        }
+        PTTradioOFF();
+      }
       BOOTacionado = false;
     }  
       
@@ -476,7 +514,7 @@ void loop()
         if ((millis() - Crono) > CincoMinutos) RADIO = false;
       }
       PTTzelloOFF();
-      if (LocutoraOK)
+      if (LocutoraOK & RogerBEEPs)
       {
         PTTradioON();
         Crono = millis();
@@ -495,7 +533,7 @@ void loop()
   {
     PTTradioON();
     while (statusZELLO == "RX") Display();
-    if (LocutoraOK)
+    if (LocutoraOK & RogerBEEPs)
     {
       LOCUTORA.play (RogerBEEPweb);
       while ( digitalRead(TocandoMP3)) Display();
@@ -509,18 +547,24 @@ void loop()
   {
     if ((!MensagemTI) & (LocutoraOK))
     {
-      PTTradioON();
-      Crono = millis();
-      while ((millis() - Crono) < 350) Display();
-      LOCUTORA.play (ZelloFECHOU);
-      Crono = millis();
-      while ((millis() - Crono) < 1000) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      LOCUTORA.play (RogerBEEPerro);
-      Crono = millis();
-      while ((millis() - Crono) < 250) Display();
-      while (!digitalRead(TocandoMP3)) Display();
-      PTTradioOFF();
+      if (Mensagens)
+      {
+        PTTradioON();
+        Crono = millis();
+        while ((millis() - Crono) < 350) Display();
+        LOCUTORA.play (ZelloFECHOU);
+        if (RogerBEEPs)
+        {
+          Crono = millis();
+          while ((millis() - Crono) < 1000) Display();
+          while (!digitalRead(TocandoMP3)) Display();
+          LOCUTORA.play (RogerBEEPerro);
+          Crono = millis();
+          while ((millis() - Crono) < 250) Display();
+          while (!digitalRead(TocandoMP3)) Display();
+        }
+        PTTradioOFF();
+      }
       MensagemTA  = false; 
       MensagemOFF = false;
       MensagemON  = false;
@@ -706,7 +750,7 @@ long PTTradioOFF()
   digitalWrite (LED,      LOW);
   digitalWrite (PTTradio, LOW);
   Crono = millis();
-  while ((millis() - Crono) < 1000) Display();
+  while ((millis() - Crono) < 1000);
   TimerLedHT = millis();
 }
 
@@ -781,7 +825,22 @@ long Display()
     Crono = millis();
     while (!digitalRead(BotaoBOOT))
     {
-      if ((millis() - Crono) > 5000) MenuSETUP1(); 
+      Pisca();
+      if ((millis() - Crono) > 3000) 
+      {
+        digitalWrite (LED, 1);
+        display.clearDisplay();
+        display.setTextColor(SSD1306_WHITE);
+        display.setTextSize(2);
+        display.setCursor (50, 25);
+        display.println(F("OK"));
+        display.display();
+        delay(1000);
+        digitalWrite (LED, 0);
+        Crono = millis();
+        opcao = 0;
+        MenuSETUPinicio(); 
+      }
     }
     if (millis() - TimerDisplay < TempoDisplay) TipoMOSTRADOR++;
     TimerDisplay = millis();
@@ -942,10 +1001,11 @@ void saveConfigCallback()
   delay(2000);  
 }
 
-// CONFIGURAÇÕES --------------------------------------------------------------------------------------------------------------------------
-long MenuSETUP1()
+// MENU INICIAL CONFIGURAÇÕES -------------------------------------------------------------------------------------------------------------
+long MenuSETUPinicio()
 {
-  while (true)
+  bool Sair = true;
+  while (Sair)
   {
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);
@@ -953,24 +1013,92 @@ long MenuSETUP1()
     display.setCursor (0, 0);
                     display.println(F("     CONFIGURACAO    "));
                     display.println(F("---------------------")); 
-    if (opcao == 1) display.println(F(">ADD botao PTT Zello"));
-    else            display.println(F(" ADD botao PTT Zello"));  
-    if (opcao == 2) display.println(F(">Posicionar LDR Zello"));
-    else            display.println(F(" Posicionar LDR Zello"));
-    if (opcao == 3) display.println(F(">Calibrar LDR Zello"));
-    else            display.println(F(" Calibrar LDR Zello"));
-    if (opcao == 4) display.println(F(">Ajustar volume VOZ"));
-    else            display.println(F(" Ajustar volume VOZ"));
-    if (opcao == 5) display.println(F(">Configurar WiFi"));
-    else            display.println(F(" Configurar WiFi"));
-    if (opcao == 6) display.println(F(">RESET"));
-    else            display.println(F(" RESET"));
+    if (opcao == 1) display.println(F(">CONFIG BASICA"));
+    else            display.println(F(" Config basica"));  
+    if (opcao == 2) display.println(F(">CONFIG MENSAGENS"));
+    else            display.println(F(" Config mensagens"));
+    if (opcao == 3) display.println(F(">CONFIG WiFi"));
+    else            display.println(F(" Config WiFi"));
+    if (opcao == 4) display.println(F(">SAIR"));
+    else            display.println(F(" Sair"));
+    if (opcao == 5) display.println(F(">RESET"));
+    else            display.println(F(" Reset"));
     if (!digitalRead(BotaoBOOT))
     {
       delay(200);
       Crono = millis();
       while (!digitalRead(BotaoBOOT))
       {
+        Pisca();
+        if ((millis() - Crono) > 2000) 
+        {
+          digitalWrite (LED, 1);
+          display.clearDisplay();
+          display.setTextColor(SSD1306_WHITE);
+          display.setTextSize(2);
+          display.setCursor (50, 25);
+          display.println(F("OK"));
+          display.display();
+          delay(1000);
+          digitalWrite (LED, 0);
+          switch (opcao)
+          {
+            case 1: 
+              opcao = 0;
+              MenuSETUPbasico();
+              break;
+            case 2:
+              opcao = 0;
+              MenuSETUPmensagens(); 
+              break;
+            case 3:
+              opcao = 0;
+              WiFiconfig();  
+              break;  
+            case 4:
+              Sair = false; 
+              break;     
+            case 5:
+              ESP.restart(); 
+              break;
+          }
+        }
+      }
+      opcao++;
+      if (opcao == 6) opcao = 1;      
+    }
+    display.display();
+  }
+  opcao = 0;
+}
+
+// CONFIGURAÇÕES BÁSICAS -------------------------------------------------------------------------------------------------------------
+long MenuSETUPbasico()
+{
+  bool Sair = true;
+  while (Sair)
+  {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(1);
+    display.setCursor (0, 0);
+                    display.println(F(" CONFIGURACAO BASICA "));
+                    display.println(F("---------------------")); 
+    if (opcao == 1) display.println(F(">ADD BOTAO PTT ZELLO"));
+    else            display.println(F(" Add botao PTT Zello"));  
+    if (opcao == 2) display.println(F(">POSICIONAR LDR ZELLO"));
+    else            display.println(F(" Posicionar LDR Zello"));
+    if (opcao == 3) display.println(F(">CALIBRAR LDR ZELLO"));
+    else            display.println(F(" Calibrar LDR Zello"));
+    if (opcao == 4) display.println(F(">VOLTAR"));
+    else            display.println(F(" Voltar"));
+    if (!digitalRead(BotaoBOOT))
+    {
+      delay(200);
+      Crono = millis();
+      while (!digitalRead(BotaoBOOT))
+      {
+        Pisca();
         if ((millis() - Crono) > 2000) 
         {
           digitalWrite (LED, 1);
@@ -994,22 +1122,94 @@ long MenuSETUP1()
               CalibrarLDRZello(); 
               break;
             case 4:
-              AjusteVOLUMEvoz(); 
-              break;
-            case 5:
-              WiFiconfig();  
-              break;       
-            case 6:
-              ESP.restart(); 
+              Sair = false; 
               break;
           }
         }
       }
       opcao++;
-      if (opcao == 7) opcao = 1;      
+      if (opcao == 5) opcao = 1;      
     }
     display.display();
   }
+  opcao = 0;
+}
+
+// CONFIGURAÇÕES MENSAGENS -------------------------------------------------------------------------------------------------------------
+long MenuSETUPmensagens()
+{
+  bool Sair = true;
+  while (Sair)
+  {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(1);
+    display.setCursor (0, 0);
+                    display.println(F("   CONFIG MENSAGENS  "));
+                    display.println(F("---------------------")); 
+    if (opcao == 1) display.println(F(">AJUSTAR O VOLUME"));
+    else            display.println(F(" Ajustar o volume"));  
+    if (opcao == 2){display.print  (F(">HORA CERTA = "));display.println(HoraCerta);}
+    else           {display.print  (F(" Hora Certa = "));display.println(HoraCerta);}
+    if (opcao == 3){display.print  (F(">MENSAGENS  = "));display.println(Mensagens);}
+    else           {display.print  (F(" Mensagens  = "));display.println(Mensagens);}
+    if (opcao == 4){display.print  (F(">ROGERBEEPs = "));display.println(RogerBEEPs);}
+    else           {display.print  (F(" RogerBEEPs = "));display.println(RogerBEEPs);}
+    if (opcao == 5) display.println(F(">VOLTAR"));
+    else            display.println(F(" Voltar"));
+    if (!digitalRead(BotaoBOOT))
+    {
+      delay(200);
+      Crono = millis();
+      while (!digitalRead(BotaoBOOT))
+      {
+        Pisca();
+        if ((millis() - Crono) > 2000) 
+        {
+          digitalWrite (LED, 1);
+          display.clearDisplay();
+          display.setTextColor(SSD1306_WHITE);
+          display.setTextSize(2);
+          display.setCursor (50, 25);
+          display.println(F("OK"));
+          display.display();
+          delay(1000);
+          digitalWrite (LED, 0);
+          switch (opcao)
+          {
+            case 1: 
+              AjusteVOLUMEvoz();
+              break;
+            case 2:
+              HoraCerta = !HoraCerta; 
+              EEPROM.writeBool (eHoraCerta, HoraCerta);
+              EEPROM.commit();
+              opcao = 1;
+              break;
+            case 3:
+              Mensagens = !Mensagens;
+              EEPROM.writeBool (eMensagens, Mensagens);
+              EEPROM.commit();
+              opcao = 2;
+              break;
+            case 4:
+              RogerBEEPs = !RogerBEEPs;
+              EEPROM.writeBool (eRogerBEEPs, RogerBEEPs);
+              EEPROM.commit();
+              opcao = 3;
+              break;
+            case 5:
+              Sair = false; 
+              break;
+          }
+        }
+      }
+      opcao++;
+      if (opcao == 6) opcao = 1;      
+    }
+    display.display();
+  }
+  opcao = 0;
 }
 
 // CONFIGURACAO WIFI -----------------------------------------------------------------------------------------------------------------------
@@ -1336,7 +1536,7 @@ long AjusteVOLUMEvoz()
   display.setCursor(0, 40);
   display.print(F("VOLUME = "));
   display.print(Volume);
-  display.print(F(" 5~30"));
+  display.print(F(" 1~30"));
   display.display();
   delay (2000);
   Crono = millis();
@@ -1345,13 +1545,22 @@ long AjusteVOLUMEvoz()
     {
       Volume++;
       digitalWrite (LED, 1);
-      if (Volume > 30) Volume = 5;
+      if (Volume > 30) Volume = 1;
+      LOCUTORA.volume(Volume);
       display.fillRect  (0, 40,   128, 55, SSD1306_BLACK);
       display.setCursor (0, 40);
       display.print(F("VOLUME = "));
       display.print(Volume);
-      display.print(F(" 5~30"));
+      display.print(F(" 1~30"));
       display.display(); 
+      PTTradioON();
+      Crono = millis();
+      while ((millis() - Crono) < 200);
+      LOCUTORA.play (LinkONLINE);
+      Crono = millis();
+      while ( digitalRead(TocandoMP3));
+      while (!digitalRead(TocandoMP3));
+      PTTradioOFF();
       delay (500);
       Crono = millis();
       digitalWrite (LED, 0);
