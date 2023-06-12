@@ -1070,6 +1070,7 @@ long MenuSETUPinicio()
     display.display();
   }
   opcao = 0;
+  TipoMOSTRADOR = 0;
 }
 
 // CONFIGURAÇÕES BÁSICAS -------------------------------------------------------------------------------------------------------------
