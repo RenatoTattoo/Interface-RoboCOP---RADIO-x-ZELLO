@@ -8,7 +8,7 @@ Through several gateways installed in distant cities and connected to the same Z
 
 It is responsible for controlling the radio's PTT and the Zello's PTT, enabling communication.
 
-It was based on changing the color of the PTT button on the Zello and the rx/tx LED on the HT, which are monitored through LDRs pasted on the smartphone screen on the edge of the Zello button and on the rx/tx LED on the HT. According to the readings obtained, the controller triggers the necessary PTT. This interface also transmits gateway status information, time message and periodic messages.
+It was based on changing the color of the PTT button on the Zello and the signal 1.2V on speaker line HT when in RX, which are monitored through RGB SENSOR on the smartphone screen on the edge of the Zello button and voltage detected by a logical gate os ESP. According to the readings obtained, the controller triggers the necessary PTT. This interface also transmits gateway status information, time message and periodic messages.
 
 I am a hobbyist and a beginner in electronics and programming, for this reason the most experienced ones will certainly find many errors and points that can be improved both in hardware and software. I appreciate any corrections or suggestions that could improve the functioning of the system!!
 
